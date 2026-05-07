@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="WEB_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/lib/action-scheduler/classes" isTestSource="false" packagePrefix="Action_Scheduler" />
+      <sourceFolder url="file://$MODULE_DIR$/lib/action-scheduler/tests/phpunit/helpers" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/lib/action-scheduler/tests/phpunit/jobs" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/lib/action-scheduler/tests/phpunit/migration" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/lib/action-scheduler/tests/phpunit/procedural_api" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/lib/action-scheduler/tests/phpunit/runner" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/lib/action-scheduler/tests/phpunit/schedules" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/lib/action-scheduler/tests/phpunit/versioning" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/lib/usmsgh/src" isTestSource="false" packagePrefix="Urhitech\" />
+      <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" packagePrefix="UsmsAPI_WC\" />
+      <excludeFolder url="file://$MODULE_DIR$/vendor/composer" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>

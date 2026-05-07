@@ -1,0 +1,17 @@
+{
+    "name": "usmsapi/usmsgh-wc-sms-notification",
+    "type": "project",
+    "authors": [
+        {
+            "name": "Woon Kit",
+            "email": "wk_kong@usms.com.my"
+        }
+    ],
+    "require": {},
+    "autoload": {
+        "psr-4": {
+            "UsmsAPI_WC\\": "src"
+        },
+        "classmap": ["src/", "src/Forms/Handlers"]
+    }
+}

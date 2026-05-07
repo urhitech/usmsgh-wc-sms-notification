@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PHPUnit">
+    <option name="directories">
+      <list>
+        <option value="$PROJECT_DIR$/lib/action-scheduler/tests/phpunit/migration" />
+        <option value="$PROJECT_DIR$/lib/action-scheduler/tests/phpunit/helpers" />
+        <option value="$PROJECT_DIR$/lib/action-scheduler/tests/phpunit/jobs" />
+        <option value="$PROJECT_DIR$/lib/action-scheduler/tests/phpunit/procedural_api" />
+        <option value="$PROJECT_DIR$/lib/action-scheduler/tests/phpunit/runner" />
+        <option value="$PROJECT_DIR$/lib/action-scheduler/tests/phpunit/schedules" />
+        <option value="$PROJECT_DIR$/lib/action-scheduler/tests/phpunit/versioning" />
+      </list>
+    </option>
+  </component>
+</project>
