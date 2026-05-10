@@ -128,7 +128,6 @@ function usmsgh_woocommerce_init() {
 	require_once USMSGH_PLUGIN_DIR . 'includes/class-usmsgh-sendsms.php';
 	require_once USMSGH_PLUGIN_DIR . 'includes/multivendor/class-usmsgh-multivendor.php';
 	require_once USMSGH_PLUGIN_DIR . 'lib/UsmsGH.php';
-	require_once USMSGH_PLUGIN_DIR . 'lib/usmsgh/src/Usms.php';
 	require_once USMSGH_PLUGIN_DIR . 'lib/class.settings-api.php';
 	require_once USMSGH_PLUGIN_DIR . 'admin/class-usmsgh-woocommerce-setting.php';
 	require_once USMSGH_PLUGIN_DIR . 'admin/sendsms.php';

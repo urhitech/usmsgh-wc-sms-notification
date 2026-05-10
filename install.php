@@ -2,7 +2,9 @@
 
 if ( ! defined( 'ABSPATH' ) ) exit;
 
-$create_sms_send = ( "CREATE TABLE IF NOT EXISTS usmsgh_wc_send_sms_outbox(
+global $wpdb;
+
+$create_sms_send = ( "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}usmsgh_wc_send_sms_outbox(
 	ID int(10) NOT NULL auto_increment,
 	date DATETIME DEFAULT CURRENT_TIMESTAMP,
 	sender VARCHAR(20) NOT NULL,
@@ -12,7 +14,7 @@ $create_sms_send = ( "CREATE TABLE IF NOT EXISTS usmsgh_wc_send_sms_outbox(
 	PRIMARY KEY(ID)) CHARSET=utf8
 " );
 
-$create_otp_table = ( "CREATE TABLE IF NOT EXISTS usmsgh_otp_codes(
+$create_otp_table = ( "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}usmsgh_otp_codes(
 	id bigint(20) unsigned NOT NULL auto_increment,
 	phone varchar(20) NOT NULL,
 	otp_code varchar(10) NOT NULL,

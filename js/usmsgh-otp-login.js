@@ -146,10 +146,11 @@
             });
         }
 
-        // Start countdown for resend
-        function startCountdown(button, seconds) {
+        // Start countdown for resend button, optionally lock a send button too
+        function startCountdown(button, seconds, lockBtn) {
             countdown = seconds || 60;
             button.prop('disabled', true);
+            if (lockBtn) lockBtn.prop('disabled', true).text('Send OTP');
 
             countdownInterval = setInterval(function() {
                 countdown--;
@@ -157,6 +158,7 @@
                     clearInterval(countdownInterval);
                     button.prop('disabled', false);
                     button.text(usmsgh_otp_params.strings.resend);
+                    if (lockBtn) lockBtn.prop('disabled', false);
                 } else {
                     button.text(usmsgh_otp_params.strings.resend_in.replace('{seconds}', countdown));
                 }
@@ -205,7 +207,7 @@
                 },
                 success: function(data) {
                     sendOtpBtn.prop('disabled', false)
-                              .text('<?php echo esc_js(__('Send OTP', 'usmsgh-wc-sms-notification')); ?>');
+                              .text('Send OTP');
                     showStatus(otpStatus, usmsgh_otp_params.strings.otp_sent, 'success');
                     otpVerifyField.slideDown();
                     otpInput.focus();
@@ -213,7 +215,7 @@
                 },
                 error: function(data) {
                     sendOtpBtn.prop('disabled', false)
-                              .text('<?php echo esc_js(__('Send OTP', 'usmsgh-wc-sms-notification')); ?>');
+                              .text('Send OTP');
                     showStatus(otpStatus, data.message || 'Failed to send OTP', 'error');
                 }
             });
@@ -240,7 +242,7 @@
                 },
                 success: function(data) {
                     verifyOtpBtn.prop('disabled', false)
-                                .text('<?php echo esc_js(__('Verify OTP', 'usmsgh-wc-sms-notification')); ?>');
+                                .text('Verify OTP');
                     showStatus(otpStatus, usmsgh_otp_params.strings.otp_verified, 'success');
                     otpVerifiedInput.val('1');
 
@@ -254,7 +256,7 @@
                 },
                 error: function(data) {
                     verifyOtpBtn.prop('disabled', false)
-                                .text('<?php echo esc_js(__('Verify OTP', 'usmsgh-wc-sms-notification')); ?>');
+                                .text('Verify OTP');
                     showStatus(otpStatus, data.message || usmsgh_otp_params.strings.invalid_otp, 'error');
                     otpInput.val('').focus();
                 }
@@ -323,19 +325,17 @@
                         modalMessage.hide();
                     },
                     success: function(data) {
-                        modalSendBtn.prop('disabled', false)
-                                   .text('<?php echo esc_js(__('Send OTP', 'usmsgh-wc-sms-notification')); ?>');
                         modalMessage.removeClass('error')
                                    .addClass('success')
                                    .text(usmsgh_otp_params.strings.otp_sent)
                                    .show();
-                        modalVerifySection.slideDown().addClass('active');
+                        modalVerifySection.addClass('active');
                         modalOtp.focus();
-                        startCountdown(modalResendBtn, 60);
+                        startCountdown(modalResendBtn, 60, modalSendBtn);
                     },
                     error: function(data) {
                         modalSendBtn.prop('disabled', false)
-                                   .text('<?php echo esc_js(__('Send OTP', 'usmsgh-wc-sms-notification')); ?>');
+                                   .text('Send OTP');
                         modalMessage.removeClass('success')
                                    .addClass('error')
                                    .text(data.message || 'Failed to send OTP')
@@ -365,7 +365,7 @@
                     },
                     success: function(data) {
                         modalVerifyBtn.prop('disabled', false)
-                                     .text('<?php echo esc_js(__('Verify', 'usmsgh-wc-sms-notification')); ?>');
+                                     .text('Verify');
                         modalMessage.removeClass('error')
                                      .addClass('success')
                                      .text(usmsgh_otp_params.strings.otp_verified)
@@ -375,16 +375,21 @@
                         phoneInput.val(phone);
                         otpVerifiedInput.val('1');
 
-                        // Close modal after short delay
+                        // Close modal and submit form
                         setTimeout(function() {
                             modal.hide();
-                            // Submit the form
-                            $('form.woocommerce-form-login').submit();
+                            var $form = $('form.woocommerce-form-login');
+                            // WooCommerce process_login() only fires when $_POST['login'] is set.
+                            // Programmatic submit doesn't include the button value, so we add it manually.
+                            if ($form.find('input[name="login"]').length === 0) {
+                                $form.append('<input type="hidden" name="login" value="Login" />');
+                            }
+                            $form[0].submit();
                         }, 1000);
                     },
                     error: function(data) {
                         modalVerifyBtn.prop('disabled', false)
-                                     .text('<?php echo esc_js(__('Verify', 'usmsgh-wc-sms-notification')); ?>');
+                                     .text('Verify');
                         modalMessage.removeClass('success')
                                      .addClass('error')
                                      .text(data.message || usmsgh_otp_params.strings.invalid_otp)

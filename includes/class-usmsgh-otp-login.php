@@ -62,19 +62,20 @@ class Usmsgh_OTP_Login implements Usmsgh_Register_Interface {
             'nonce' => wp_create_nonce('usmsgh_otp_nonce'),
             'strings' => array(
                 'enter_phone' => __('Enter your phone number to receive OTP', 'usmsgh-wc-sms-notification'),
-                'sending' => __('Sending...', 'usmsgh-wc-sms-notification'),
-                'verify' => __('Verify', 'usmsgh-wc-sms-notification'),
-                'resend' => __('Resend OTP', 'usmsgh-wc-sms-notification'),
-                'resend_in' => __('Resend in {seconds}s', 'usmsgh-wc-sms-notification'),
+                'sending'     => __('Sending...', 'usmsgh-wc-sms-notification'),
+                'verifying'   => __('Verifying...', 'usmsgh-wc-sms-notification'),
+                'verify'      => __('Verify', 'usmsgh-wc-sms-notification'),
+                'resend'      => __('Resend OTP', 'usmsgh-wc-sms-notification'),
+                'resend_in'   => __('Resend in {seconds}s', 'usmsgh-wc-sms-notification'),
                 'invalid_otp' => __('Invalid OTP code', 'usmsgh-wc-sms-notification'),
-                'otp_sent' => __('OTP sent to your phone', 'usmsgh-wc-sms-notification'),
-                'otp_verified' => __('OTP verified successfully', 'usmsgh-wc-sms-notification')
+                'otp_sent'    => __('OTP sent to your phone', 'usmsgh-wc-sms-notification'),
+                'otp_verified'=> __('OTP verified successfully', 'usmsgh-wc-sms-notification')
             )
         ));
     }
 
     /**
-     * Add OTP verification field to login form
+     * Add OTP phone field to login form
      */
     public function add_otp_field_to_login() {
         if (!$this->is_enabled()) {
@@ -83,26 +84,9 @@ class Usmsgh_OTP_Login implements Usmsgh_Register_Interface {
         ?>
         <p class="form-row form-row-wide">
             <label for="usmsgh_phone"><?php _e('Phone Number', 'usmsgh-wc-sms-notification'); ?> <span class="required">*</span></label>
-            <input type="tel" class="input-text" name="usmsgh_phone" id="usmsgh_phone" value="" />
-        </p>
-        <p class="form-row form-row-wide">
-            <button type="button" id="usmsgh_send_otp_btn" class="button">
-                <?php _e('Send OTP', 'usmsgh-wc-sms-notification'); ?>
-            </button>
-        </p>
-        <p class="form-row form-row-wide usmsgh-otp-verify-field" style="display:none;">
-            <label for="usmsgh_otp_code"><?php _e('Enter OTP', 'usmsgh-wc-sms-notification'); ?> <span class="required">*</span></label>
-            <input type="text" class="input-text" name="usmsgh_otp_code" id="usmsgh_otp_code" maxlength="8" autocomplete="off" />
-            <button type="button" id="usmsgh_verify_otp_btn" class="button">
-                <?php _e('Verify OTP', 'usmsgh-wc-sms-notification'); ?>
-            </button>
-            <button type="button" id="usmsgh_resend_otp_btn" class="button" disabled>
-                <?php _e('Resend OTP', 'usmsgh-wc-sms-notification'); ?>
-            </button>
-            <span class="usmsgh-otp-status"></span>
+            <input type="tel" class="input-text" name="usmsgh_phone" id="usmsgh_phone" autocomplete="tel" />
         </p>
         <input type="hidden" name="usmsgh_otp_verified" id="usmsgh_otp_verified" value="0" />
-        <input type="hidden" name="usmsgh_login_context" value="login" />
         <?php
     }
 
@@ -153,7 +137,9 @@ class Usmsgh_OTP_Login implements Usmsgh_Register_Interface {
 
         // Check if OTP is verified
         $otp_verified = isset($_POST['usmsgh_otp_verified']) ? sanitize_text_field($_POST['usmsgh_otp_verified']) : '0';
-        $phone = isset($_POST['usmsgh_phone']) ? sanitize_text_field($_POST['usmsgh_phone']) : '';
+        $phone        = isset($_POST['usmsgh_phone']) ? sanitize_text_field($_POST['usmsgh_phone']) : '';
+
+        error_log('UsmsGH authenticate_with_otp: otp_verified=' . $otp_verified . ' phone=' . $phone);
 
         if ($otp_verified !== '1' || empty($phone)) {
             return new WP_Error(
@@ -162,9 +148,11 @@ class Usmsgh_OTP_Login implements Usmsgh_Register_Interface {
             );
         }
 
-        // Verify that the OTP was actually verified
+        // Verify that the OTP was actually verified in DB
         $is_verified = $this->otp_handler->is_otp_verified($phone, 'login');
-        
+
+        error_log('UsmsGH authenticate_with_otp: is_verified=' . ($is_verified ? 'true' : 'false'));
+
         if (!$is_verified) {
             return new WP_Error(
                 'otp_invalid',
@@ -173,7 +161,7 @@ class Usmsgh_OTP_Login implements Usmsgh_Register_Interface {
         }
 
         // Clear the verification after successful login
-        $this->otp_handler->clear_verification('login');
+        $this->otp_handler->clear_verification($phone, 'login');
 
         return $user;
     }

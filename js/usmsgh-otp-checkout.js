@@ -223,7 +223,7 @@
                 },
                 success: function(data) {
                     sendOtpBtn.prop('disabled', false)
-                              .text('<?php echo esc_js(__('Send OTP', 'usmsgh-wc-sms-notification')); ?>');
+                              .text('Send OTP');
                     showMessage(otpMessage, usmsgh_otp_checkout_params.strings.otp_sent, 'success');
                     otpVerifyRow.slideDown();
                     otpInput.focus();
@@ -231,7 +231,7 @@
                 },
                 error: function(data) {
                     sendOtpBtn.prop('disabled', false)
-                              .text('<?php echo esc_js(__('Send OTP', 'usmsgh-wc-sms-notification')); ?>');
+                              .text('Send OTP');
                     showMessage(otpMessage, data.message || 'Failed to send OTP', 'error');
                 }
             });
@@ -258,7 +258,7 @@
                 },
                 success: function(data) {
                     verifyOtpBtn.prop('disabled', false)
-                                .text('<?php echo esc_js(__('Verify OTP', 'usmsgh-wc-sms-notification')); ?>');
+                                .text('Verify OTP');
                     showMessage(otpMessage, usmsgh_otp_checkout_params.strings.otp_verified, 'success');
                     otpVerifiedInput.val('1');
 
@@ -281,7 +281,7 @@
                 },
                 error: function(data) {
                     verifyOtpBtn.prop('disabled', false)
-                                .text('<?php echo esc_js(__('Verify OTP', 'usmsgh-wc-sms-notification')); ?>');
+                                .text('Verify OTP');
                     showMessage(otpMessage, data.message || usmsgh_otp_checkout_params.strings.invalid_otp, 'error');
                     otpInput.val('').focus();
 

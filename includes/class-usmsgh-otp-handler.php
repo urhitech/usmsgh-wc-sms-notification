@@ -14,7 +14,18 @@ class Usmsgh_OTP_Handler {
         global $wpdb;
         $this->table_name = $wpdb->prefix . 'usmsgh_otp_codes';
         $this->log = new Usmsgh_WooCoommerce_Logger();
+        $this->ensure_table_exists();
         $this->init();
+    }
+
+    /**
+     * Create table if it doesn't exist yet
+     */
+    private function ensure_table_exists() {
+        global $wpdb;
+        if ( $wpdb->get_var( "SHOW TABLES LIKE '{$this->table_name}'" ) !== $this->table_name ) {
+            self::create_table();
+        }
     }
 
     /**
@@ -235,43 +246,70 @@ class Usmsgh_OTP_Handler {
             $template
         );
         
-        // Send SMS using USMS-GH
-        try {
-            $api_key = usmsgh_get_options('usmsgh_woocommerce_api_key', 'usmsgh_setting');
-            $sender_id = usmsgh_get_options('usmsgh_woocommerce_sms_from', 'usmsgh_setting');
-            
-            if (empty($api_key) || empty($sender_id)) {
-                return array(
-                    'success' => false,
-                    'message' => __('SMS API not configured. Please contact the administrator.', 'usmsgh-wc-sms-notification')
-                );
-            }
-            
-            $usmsgh = new UsmsGH($api_key);
-            $phones = array($this->normalize_phone($phone));
-            
-            $response = $usmsgh->sendSMS($phones, $message, $sender_id);
-            $response = json_decode($response, true);
-            
-            if (isset($response['status']) && $response['status'] == 0) {
-                return array(
-                    'success' => true,
-                    'message' => __('OTP sent successfully. Please check your phone.', 'usmsgh-wc-sms-notification'),
-                    'otp_id' => $store_otp
-                );
-            } else {
-                $error_msg = isset($response['comment']) ? $response['comment'] : 'Failed to send SMS';
-                $this->log->add('UsmsGH_OTP', 'SMS send failed: ' . $error_msg);
-                return array(
-                    'success' => false,
-                    'message' => __('Failed to send OTP. Please try again later.', 'usmsgh-wc-sms-notification')
-                );
-            }
-        } catch (Exception $e) {
-            $this->log->add('UsmsGH_OTP', 'Exception: ' . $e->getMessage());
+        // Send SMS using USMS-GH API
+        $api_key   = usmsgh_get_options('usmsgh_woocommerce_api_key', 'usmsgh_setting');
+        $sender_id = usmsgh_get_options('usmsgh_woocommerce_sms_from', 'usmsgh_setting');
+
+        if (empty($api_key) || empty($sender_id)) {
             return array(
                 'success' => false,
-                'message' => __('An error occurred. Please try again later.', 'usmsgh-wc-sms-notification')
+                'message' => __('SMS API not configured. Please contact the administrator.', 'usmsgh-wc-sms-notification')
+            );
+        }
+
+        $normalized_phone = $this->normalize_phone($phone);
+
+        $this->log->add('UsmsGH_OTP', 'Sending OTP to: ' . $normalized_phone . ', sender: ' . $sender_id . ', key_set: ' . (!empty($api_key) ? 'yes' : 'no'));
+
+        $api_url = add_query_arg(
+            array(
+                'recipient' => $normalized_phone,
+                'sender_id' => $sender_id,
+                'typ'       => 'plain',
+                'message'   => $message,
+            ),
+            'https://webapp.usmsgh.com/api/sms/send'
+        );
+
+        $response = wp_remote_post(
+            $api_url,
+            array(
+                'timeout'   => 30,
+                'sslverify' => false,
+                'headers'   => array(
+                    'Authorization' => 'Bearer ' . $api_key,
+                    'Accept'        => 'application/json',
+                ),
+            )
+        );
+
+        if (is_wp_error($response)) {
+            $err = $response->get_error_message();
+            $this->log->add('UsmsGH_OTP', 'HTTP error: ' . $err);
+            return array(
+                'success' => false,
+                'message' => 'HTTP Error: ' . $err
+            );
+        }
+
+        $http_code   = wp_remote_retrieve_response_code($response);
+        $raw_body    = wp_remote_retrieve_body($response);
+        $body        = json_decode($raw_body, true);
+
+        $this->log->add('UsmsGH_OTP', 'HTTP ' . $http_code . ' Response: ' . $raw_body);
+
+        if (isset($body['status']) && $body['status'] === 'success') {
+            return array(
+                'success' => true,
+                'message' => __('OTP sent successfully. Please check your phone.', 'usmsgh-wc-sms-notification'),
+                'otp_id'  => $store_otp
+            );
+        } else {
+            $error_msg = isset($body['message']) ? $body['message'] : ( 'HTTP ' . $http_code . ': ' . $raw_body );
+            $this->log->add('UsmsGH_OTP', 'SMS send failed: ' . $error_msg);
+            return array(
+                'success' => false,
+                'message' => 'SMS Error: ' . $error_msg
             );
         }
     }
@@ -317,11 +355,6 @@ class Usmsgh_OTP_Handler {
         $result = $this->verify_otp($phone, $otp, $context);
         
         if ($result['success']) {
-            // Set session/cookie to indicate verified OTP
-            session_start();
-            $_SESSION['usmsgh_otp_verified_' . $context] = true;
-            $_SESSION['usmsgh_otp_phone_' . $context] = $this->normalize_phone($phone);
-            
             wp_send_json_success($result);
         } else {
             wp_send_json_error($result);
@@ -374,41 +407,52 @@ class Usmsgh_OTP_Handler {
     }
 
     /**
-     * Check if OTP is verified for a phone number
+     * Check if OTP is verified for a phone number by looking for a recently verified DB record
      *
      * @param string $phone
      * @param string $context
      * @return bool
      */
     public function is_otp_verified($phone, $context = 'general') {
-        if (!session_id()) {
-            session_start();
-        }
-        
-        $session_key = 'usmsgh_otp_verified_' . $context;
-        $session_phone_key = 'usmsgh_otp_phone_' . $context;
-        
-        if (isset($_SESSION[$session_key]) && $_SESSION[$session_key] === true) {
-            if (isset($_SESSION[$session_phone_key]) && $_SESSION[$session_phone_key] === $this->normalize_phone($phone)) {
-                return true;
-            }
-        }
-        
-        return false;
+        global $wpdb;
+
+        $normalized = $this->normalize_phone($phone);
+
+        $verified = $wpdb->get_var($wpdb->prepare(
+            "SELECT id FROM {$this->table_name}
+            WHERE phone = %s
+            AND context = %s
+            AND verified = 1
+            ORDER BY id DESC
+            LIMIT 1",
+            $normalized,
+            sanitize_text_field($context)
+        ));
+
+        $result = !empty($verified);
+        error_log('UsmsGH OTP is_otp_verified: phone=' . $normalized . ' context=' . $context . ' result=' . ($result ? 'true' : 'false') . ' db_err=' . $wpdb->last_error);
+        return $result;
     }
 
     /**
-     * Clear OTP verification for a context
+     * Clear OTP verification after successful use
      *
+     * @param string $phone
      * @param string $context
      */
-    public function clear_verification($context = 'general') {
-        if (!session_id()) {
-            session_start();
+    public function clear_verification($phone = null, $context = 'general') {
+        global $wpdb;
+        if ($phone) {
+            $wpdb->delete(
+                $this->table_name,
+                array(
+                    'phone'   => $this->normalize_phone($phone),
+                    'context' => sanitize_text_field($context),
+                    'verified' => 1,
+                ),
+                array('%s', '%s', '%d')
+            );
         }
-        
-        unset($_SESSION['usmsgh_otp_verified_' . $context]);
-        unset($_SESSION['usmsgh_otp_phone_' . $context]);
     }
 
     /**
@@ -418,22 +462,26 @@ class Usmsgh_OTP_Handler {
      * @return string
      */
     private function normalize_phone($phone) {
-        // Remove all non-digit characters
+        // Strip everything except digits
         $phone = preg_replace('/[^0-9]/', '', $phone);
-        
-        // Get country code
+
+        // Default country code = 233 (Ghana)
         $country_code = usmsgh_get_options('usmsgh_woocommerce_country_code', 'usmsgh_setting', '233');
-        
-        // If starts with 0, replace with country code
-        if (strpos($phone, '0') === 0) {
-            $phone = $country_code . substr($phone, 1);
+        $country_code = preg_replace('/[^0-9]/', '', $country_code);
+        if (empty($country_code)) {
+            $country_code = '233';
         }
-        // If doesn't start with country code, prepend it
-        elseif (strpos($phone, $country_code) !== 0) {
-            $phone = $country_code . $phone;
+
+        // Strip leading zeros
+        $phone = ltrim($phone, '0');
+
+        // If already starts with the country code, return as-is
+        if (strpos($phone, $country_code) === 0) {
+            return $phone;
         }
-        
-        return $phone;
+
+        // Otherwise prepend country code
+        return $country_code . $phone;
     }
 
     /**
