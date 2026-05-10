@@ -4,7 +4,7 @@
 Plugin Name: USMS-GH WC SMS Notification
 Plugin URI:  https://usmsgh.com/plugins/usmsgh-wc-sms-notification
 Description: USMS-GH Order SMS Notification for WC
-Version:     2.2.0
+Version:     2.2.1
 Author:      Urhitech
 Author URI:  https://urhitech.com
 License:     GPLv3
